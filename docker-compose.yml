@@ -1,13 +1,12 @@
-version: '3.1'
 services:
   wordpress:
    build: .
    restart: always
    environment:
-     WORDPRESS_DB_HOST: 
-     WORDPRESS_DB_USER: 
-     WORDPRESS_DB_PASSWORD: 
-     WORDPRESS_DB_NAME: 
+     WORDPRESS_DB_HOST:  db
+     WORDPRESS_DB_USER: wp
+     WORDPRESS_DB_PASSWORD: Aa@1234
+     WORDPRESS_DB_NAME:  wordpress
    volumes:
      - wordpress:/var/www/html
      - ./php-conf/php.ini:/usr/local/etc/php/conf.d/php.ini
@@ -19,10 +18,10 @@ services:
     image: mysql:5.7
     restart: always
     environment:
-      MYSQL_DATABASE: 
-      MYSQL_USER: 
-      MYSQL_PASSWORD: 
-      MYSQL_ROOT_PASSWORD: 
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wp
+      MYSQL_PASSWORD: Aa@1234
+      MYSQL_ROOT_PASSWORD: Aa@1234
     volumes:
       - db:/var/lib/mysql
       - ./mysql_conf:/etc/mysql/conf.d
@@ -42,9 +41,18 @@ services:
     volumes:
       - wordpress:/var/www/html
       - ./nginx_conf/:/etc/nginx/
+      - certbot-etc:/etc/letsencrypt
     networks:
       - app-network
-
+  certbot:
+    depends_on:
+      - webserver
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - wordpress:/var/www/html
+    command: certonly --webroot --webroot-path=/var/www/html --email mrnickfetrat@gmail.com --agree-tos --no-eff-email  -d farshadnikfetrat.com -d www.farshadnikfetrat.com
         #  phpmyadmin:
         #    image: phpmyadmin/phpmyadmin
         #    container_name: pma
@@ -61,26 +69,26 @@ services:
         #      - app-network
 
 
-  mysql_exporter:
-    image: prom/mysqld-exporter
-    restart: always
-    environment:
-      DATA_SOURCE_NAME: ""
-    ports:
-      - 9104:9104
-    command: ["--collect.info_schema.innodb_cmp", "--collect.info_schema.schemastats", "--collect.info_schema.tablestats", "--collect.engine_innodb_status", "--collect.info_schema.query_response_time", "--collect.info_schema.innodb_cmpmem", "--collect.perf_schema.memory_events", "--collect.perf_schema.tablelocks", "--collect.global_status", "--collect.global_variables", "--collect.info_schema.innodb_metrics"]
-    networks:
-      - app-network
-
-  php-fpm-exporter:
-    image: bakins/php-fpm-exporter:v0.6.1
-    container_name: php-fpm-exporter
-    restart: unless-stopped
-    command: ["--fastcgi", "tcp://wordpress:9000/status", "--addr", "0.0.0.0:9523"]
-    ports:
-      - "9523:9523"
-    networks:
-      - app-network
+#  mysql_exporter:
+#    image: prom/mysqld-exporter
+#    restart: always
+#    environment:
+#      DATA_SOURCE_NAME: ""
+#    ports:
+#      - 9104:9104
+#    command: ["--collect.info_schema.innodb_cmp", "--collect.info_schema.schemastats", "--collect.info_schema.tablestats", "--collect.engine_innodb_status", "--collect.info_schema.query_response_time", "--collect.info_schema.innodb_cmpmem", "--collect.perf_schema.memory_events", "--collect.perf_schema.tablelocks", "--collect.global_status", "--collect.global_variables", "--collect.info_schema.innodb_metrics"]
+#    networks:
+#      - app-network
+#
+#  php-fpm-exporter:
+#    image: bakins/php-fpm-exporter:v0.6.1
+#    container_name: php-fpm-exporter
+#    restart: unless-stopped
+#    command: ["--fastcgi", "tcp://wordpress:9000/status", "--addr", "0.0.0.0:9523"]
+#    ports:
+#      - "9523:9523"
+#    networks:
+#      - app-network
 
 
 networks:
@@ -88,5 +96,7 @@ networks:
     driver: bridge
 
 volumes:
+  certbot-etc:
+
   wordpress:
   db:
